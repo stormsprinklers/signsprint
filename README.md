@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# SignSprint
 
-## Getting Started
+Next.js app for **SignSprint** — yard sign and door hanger distribution for home service companies, with tracked campaign phone numbers.
 
-First, run the development server:
+## What’s included
+
+- Marketing site with services, how it works, programs, and a **book a sales call** form
+- Customer portal (demo: Apex Heating & Air)
+  - Campaign spend, calls, and leads
+  - Live map of yard signs and door hangers
+  - Call log
+  - In-app order form
+  - Billing portal
+- Twilio voice webhooks that match a tracking number to a campaign and forward the call
+
+## Run locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Demo portal
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- URL: [/portal/login](http://localhost:3000/portal/login)
+- Email: `hannah.h@example.com`
+- Password: `demo1234`
 
-## Learn More
+## Twilio call forwarding
 
-To learn more about Next.js, take a look at the following resources:
+1. Copy `.env.example` to `.env.local` and add your Twilio Account SID and Auth Token.
+2. Expose the app with a public HTTPS URL (production domain or a tunnel such as ngrok).
+3. In Twilio, set the phone number **A call comes in** webhook to:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   `POST https://your-domain.com/api/twilio/voice`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   and optionally the status callback to:
 
-## Deploy on Vercel
+   `POST https://your-domain.com/api/twilio/status`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+4. Buy or assign local numbers that match campaign tracking numbers in `lib/data.ts` (demo numbers: `(720) 555-0142`, `(720) 555-0188`, `(303) 555-0164`).
+5. Set `TWILIO_VOICE_WEBHOOK_URL` and `TWILIO_STATUS_WEBHOOK_URL` to those public URLs so signature validation matches.
+6. When you are ready to reject unsigned requests, set `TWILIO_VALIDATE_REQUESTS=true`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Inbound flow: Twilio POSTs the call to `/api/twilio/voice` → SignSprint looks up the campaign by `To` number → TwiML `<Dial>` forwards to the customer’s office line → `/api/twilio/status` stores duration and outcome.
+
+Interest forms and orders are saved as JSON under `/data` for local use. Swap that store for a database before production.
+
+## Stack
+
+Next.js 16 (App Router), TypeScript, Tailwind CSS v4, Twilio Node SDK, Leaflet / OpenStreetMap.
