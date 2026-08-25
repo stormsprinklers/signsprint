@@ -5,30 +5,31 @@ import type { CallRecord, CampaignOrder, LeadInquiry } from "@/lib/types";
 
 const dataDir = path.join(process.cwd(), "data");
 
-const memory = {
-  leads: [] as LeadInquiry[],
-  orders: [] as CampaignOrder[],
-  calls: [] as CallRecord[],
+type MemoryStore = {
+  leads: LeadInquiry[];
+  orders: CampaignOrder[];
+  calls: CallRecord[];
 };
 
-type StoreKey = keyof typeof memory;
+const memory: MemoryStore = {
+  leads: [],
+  orders: [],
+  calls: [],
+};
 
-async function readJson<T>(file: string, key: StoreKey, fallback: T): Promise<T> {
+async function readJson<K extends keyof MemoryStore>(file: string, key: K): Promise<MemoryStore[K]> {
   try {
     const raw = await readFile(path.join(dataDir, file), "utf8");
-    const parsed = JSON.parse(raw) as T;
-    memory[key] = parsed as (typeof memory)[StoreKey];
+    const parsed = JSON.parse(raw) as MemoryStore[K];
+    memory[key] = parsed;
     return parsed;
   } catch {
-    if (memory[key].length > 0) {
-      return memory[key] as T;
-    }
-    return fallback;
+    return memory[key];
   }
 }
 
-async function writeJson(file: string, key: StoreKey, value: unknown) {
-  memory[key] = value as (typeof memory)[StoreKey];
+async function writeJson<K extends keyof MemoryStore>(file: string, key: K, value: MemoryStore[K]) {
+  memory[key] = value;
   try {
     await mkdir(dataDir, { recursive: true });
     await writeFile(path.join(dataDir, file), JSON.stringify(value, null, 2), "utf8");
@@ -38,7 +39,7 @@ async function writeJson(file: string, key: StoreKey, value: unknown) {
 }
 
 export async function getLeads() {
-  return readJson<LeadInquiry[]>("leads.json", "leads", memory.leads);
+  return readJson("leads.json", "leads");
 }
 
 export async function addLead(lead: LeadInquiry) {
@@ -49,7 +50,7 @@ export async function addLead(lead: LeadInquiry) {
 }
 
 export async function getOrders() {
-  return readJson<CampaignOrder[]>("orders.json", "orders", memory.orders);
+  return readJson("orders.json", "orders");
 }
 
 export async function addOrder(order: CampaignOrder) {
@@ -60,7 +61,7 @@ export async function addOrder(order: CampaignOrder) {
 }
 
 export async function getLoggedCalls() {
-  return readJson<CallRecord[]>("calls.json", "calls", memory.calls);
+  return readJson("calls.json", "calls");
 }
 
 export async function addCall(call: CallRecord) {
