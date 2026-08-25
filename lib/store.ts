@@ -5,44 +5,62 @@ import type { CallRecord, CampaignOrder, LeadInquiry } from "@/lib/types";
 
 const dataDir = path.join(process.cwd(), "data");
 
-async function readJson<T>(file: string, fallback: T): Promise<T> {
+const memory = {
+  leads: [] as LeadInquiry[],
+  orders: [] as CampaignOrder[],
+  calls: [] as CallRecord[],
+};
+
+type StoreKey = keyof typeof memory;
+
+async function readJson<T>(file: string, key: StoreKey, fallback: T): Promise<T> {
   try {
     const raw = await readFile(path.join(dataDir, file), "utf8");
-    return JSON.parse(raw) as T;
+    const parsed = JSON.parse(raw) as T;
+    memory[key] = parsed as (typeof memory)[StoreKey];
+    return parsed;
   } catch {
+    if (memory[key].length > 0) {
+      return memory[key] as T;
+    }
     return fallback;
   }
 }
 
-async function writeJson(file: string, value: unknown) {
-  await mkdir(dataDir, { recursive: true });
-  await writeFile(path.join(dataDir, file), JSON.stringify(value, null, 2), "utf8");
+async function writeJson(file: string, key: StoreKey, value: unknown) {
+  memory[key] = value as (typeof memory)[StoreKey];
+  try {
+    await mkdir(dataDir, { recursive: true });
+    await writeFile(path.join(dataDir, file), JSON.stringify(value, null, 2), "utf8");
+  } catch {
+    // Vercel and other serverless hosts cannot write the repo filesystem.
+  }
 }
 
 export async function getLeads() {
-  return readJson<LeadInquiry[]>("leads.json", []);
+  return readJson<LeadInquiry[]>("leads.json", "leads", memory.leads);
 }
 
 export async function addLead(lead: LeadInquiry) {
   const leads = await getLeads();
   leads.unshift(lead);
-  await writeJson("leads.json", leads);
+  await writeJson("leads.json", "leads", leads);
   return lead;
 }
 
 export async function getOrders() {
-  return readJson<CampaignOrder[]>("orders.json", []);
+  return readJson<CampaignOrder[]>("orders.json", "orders", memory.orders);
 }
 
 export async function addOrder(order: CampaignOrder) {
   const orders = await getOrders();
   orders.unshift(order);
-  await writeJson("orders.json", orders);
+  await writeJson("orders.json", "orders", orders);
   return order;
 }
 
 export async function getLoggedCalls() {
-  return readJson<CallRecord[]>("calls.json", []);
+  return readJson<CallRecord[]>("calls.json", "calls", memory.calls);
 }
 
 export async function addCall(call: CallRecord) {
@@ -53,7 +71,7 @@ export async function addCall(call: CallRecord) {
   } else {
     calls.unshift(call);
   }
-  await writeJson("calls.json", calls);
+  await writeJson("calls.json", "calls", calls);
   return call;
 }
 
@@ -73,7 +91,7 @@ export async function updateCall(id: string, patch: Partial<CallRecord>) {
     });
   }
   calls[index] = { ...calls[index], ...patch };
-  await writeJson("calls.json", calls);
+  await writeJson("calls.json", "calls", calls);
   return calls[index];
 }
 

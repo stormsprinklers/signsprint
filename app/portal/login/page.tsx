@@ -1,10 +1,15 @@
 import { Logo } from "@/components/Logo";
+import { getSession } from "@/lib/auth";
 import { customer, DEMO_PASSWORD } from "@/lib/data";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 export const metadata = { title: "Portal login" };
 
 export default async function LoginPage({ searchParams }: PageProps<"/portal/login">) {
+  const session = await getSession();
+  if (session) redirect("/portal");
+
   const { error } = await searchParams;
 
   return (

@@ -46,7 +46,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Inbound flow: Twilio POSTs the call to `/api/twilio/voice` → SignSprint looks up the campaign by `To` number → TwiML `<Dial>` forwards to the customer’s office line → `/api/twilio/status` stores duration and outcome.
 
-Interest forms and orders are saved as JSON under `/data` for local use. Swap that store for a database before production.
+Interest forms, orders, and Twilio call logs write JSON under `/data` when the filesystem is writable (local dev). On Vercel they stay in memory for the life of the serverless instance. Swap that store for a database before production. Portal auth is enforced in the dashboard layout, not `proxy.ts` / middleware, so Vercel routing is not blocked by the Next.js 16 proxy bundler.
 
 ## Stack
 
