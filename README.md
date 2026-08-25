@@ -48,6 +48,17 @@ Inbound flow: Twilio POSTs the call to `/api/twilio/voice` → SignSprint looks 
 
 Interest forms, orders, and Twilio call logs write JSON under `/data` when the filesystem is writable (local dev). On Vercel they stay in memory for the life of the serverless instance. Swap that store for a database before production. Portal auth is enforced in the dashboard layout, not `proxy.ts` / middleware, so Vercel routing is not blocked by the Next.js 16 proxy bundler.
 
+## Vercel
+
+This ID style (`sfo1::…`) is a CDN 404: the request never reached Next.js. In the project, **Build & Development Settings** must be:
+
+- Framework Preset: **Next.js** (also pinned in `vercel.json`)
+- Root Directory: empty (repo root)
+- Output Directory: **not overridden** (do not set `public`, `.next`, `out`, or `dist`)
+- Build Command: default `npm run build`
+
+If a deploy is Ready and `/` still 404s after those settings, delete the Vercel project and re-import the GitHub repo. A bad first deploy can leave a stuck routing manifest.
+
 ## Stack
 
 Next.js 16 (App Router), TypeScript, Tailwind CSS v4, Twilio Node SDK, Leaflet / OpenStreetMap.
